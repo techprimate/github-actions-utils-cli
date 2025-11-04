@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "keepUpdatedLabel": "renovate:keep-updated",
+  "lockFileMaintenance": {
+    "automerge": true,
+    "enabled": true,
+    "extends": ["schedule:daily"]
+  },
+  "packageRules": [
+    {
+      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch"]
+    }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "rebaseLabel": "renovate:rebase",
+  "stopUpdatingLabel": "renovate:disabled",
+  "timezone": "Europe/Vienna"
+}

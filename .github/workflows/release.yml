@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      commit_sha: ${{ steps.metadata.outputs.commit_sha }}
+      build_date: ${{ steps.metadata.outputs.build_date }}
+      is_prerelease: ${{ steps.metadata.outputs.is_prerelease }}
+      release_name: ${{ steps.metadata.outputs.release_name }}
+      tag_name: ${{ steps.metadata.outputs.tag_name }}
+    steps:
+      - name: Extract version and metadata
+        id: metadata
+        shell: bash
+        run: |
+          # Check if this is a tag push (release) or branch push (pre-release)
+          if echo "${{ github.ref }}" | grep -q "^refs/tags/v"; then
+            # Stable release from tag
+            VERSION=$(echo "${{ github.ref }}" | sed 's|refs/tags/v||')
+            IS_PRERELEASE="false"
+            RELEASE_NAME="Release v${VERSION}"
+            TAG_NAME="v${VERSION}"
+          else
+            # Pre-release from main branch
+            COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            VERSION="latest-${COMMIT_SHA}"
+            IS_PRERELEASE="true"
+            RELEASE_NAME="Latest Development Build"
+            TAG_NAME="latest"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "commit_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "build_date=${{ github.event.head_commit.timestamp }}" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          echo "Version: $VERSION"
+          echo "Commit: ${{ github.sha }}"
+          echo "Commit Date: ${{ github.event.head_commit.timestamp }}"
+          echo "Is Prerelease: $IS_PRERELEASE"
+          echo "Release Name: $RELEASE_NAME"
+          echo "Tag Name: $TAG_NAME"
+
+  build:
+    name: Build Binaries
+    needs: prepare
+    uses: ./.github/workflows/build-binaries.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      commit_sha: ${{ needs.prepare.outputs.commit_sha }}
+      build_date: ${{ needs.prepare.outputs.build_date }}
+    secrets:
+      DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+      DEVELOPER_ID_PASSWORD: ${{ secrets.DEVELOPER_ID_PASSWORD }}
+      APPLE_NOTARIZATION_APPLE_ID_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID_PASSWORD }}
+
+  release:
+    name: Create Release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: dist
+          pattern: cli-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum github-actions-utils-cli-* > checksums.txt
+          cat checksums.txt
+
+      - name: Prepare release notes
+        run: |
+          # Use different template based on release type
+          if [ "${{ needs.prepare.outputs.is_prerelease }}" = "true" ]; then
+            TEMPLATE=".github/pre-release-template.md"
+          else
+            TEMPLATE=".github/release-template.md"
+          fi
+
+          sed -e 's/{{VERSION}}/${{ needs.prepare.outputs.version }}/g' \
+              -e 's/{{COMMIT_SHA}}/${{ needs.prepare.outputs.commit_sha }}/g' \
+              -e 's/{{BUILD_DATE}}/${{ needs.prepare.outputs.build_date }}/g' \
+              -e 's|{{REPOSITORY}}|${{ github.repository }}|g' \
+              "$TEMPLATE" > dist/release-notes.md
+          cat dist/release-notes.md
+
+      - name: Delete existing latest release (pre-release only)
+        if: needs.prepare.outputs.is_prerelease == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete release (this also deletes the tag if it exists)
+          gh release delete latest --yes --cleanup-tag || true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.prepare.outputs.release_name }}
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
+          body_path: dist/release-notes.md
+          files: |
+            dist/github-actions-utils-cli-linux-amd64
+            dist/github-actions-utils-cli-linux-arm64
+            dist/github-actions-utils-cli-darwin-amd64
+            dist/github-actions-utils-cli-darwin-arm64
+            dist/github-actions-utils-cli-windows-amd64.exe
+            dist/checksums.txt
+          draft: false
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
