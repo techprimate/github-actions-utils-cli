@@ -15,36 +15,7 @@ A Model Context Protocol (MCP) server that provides tools for working with GitHu
 
 ### Download Pre-built Binary (Recommended)
 
-Download the latest release for your platform:
-
-```bash
-# macOS (Apple Silicon)
-curl -L -o github-actions-utils-cli \
-  https://github.com/techprimate/github-actions-utils-cli/releases/latest/download/github-actions-utils-cli-darwin-arm64
-chmod +x github-actions-utils-cli
-sudo mv github-actions-utils-cli /usr/local/bin/
-
-# macOS (Intel)
-curl -L -o github-actions-utils-cli \
-  https://github.com/techprimate/github-actions-utils-cli/releases/latest/download/github-actions-utils-cli-darwin-amd64
-chmod +x github-actions-utils-cli
-sudo mv github-actions-utils-cli /usr/local/bin/
-
-# Linux (AMD64)
-curl -L -o github-actions-utils-cli \
-  https://github.com/techprimate/github-actions-utils-cli/releases/latest/download/github-actions-utils-cli-linux-amd64
-chmod +x github-actions-utils-cli
-sudo mv github-actions-utils-cli /usr/local/bin/
-
-# Linux (ARM64)
-curl -L -o github-actions-utils-cli \
-  https://github.com/techprimate/github-actions-utils-cli/releases/latest/download/github-actions-utils-cli-linux-arm64
-chmod +x github-actions-utils-cli
-sudo mv github-actions-utils-cli /usr/local/bin/
-
-# Windows (AMD64)
-# Download from: https://github.com/techprimate/github-actions-utils-cli/releases/latest/download/github-actions-utils-cli-windows-amd64.exe
-```
+Download the latest release for your platform as described in the [latest release notes](https://github.com/techprimate/github-actions-utils-cli/releases/tag/latest).
 
 ### Build from Source
 
@@ -70,6 +41,14 @@ github-actions-utils-cli mcp
 ```
 
 ### MCP Client Configuration
+
+#### Claude CLI
+
+Add to your Claude CLI configuration using the `claude mcp` command:
+
+```bash
+claude mcp add --transport stdio github-actions-utils-cli github-actions-utils-cli mcp
+```
 
 #### Claude Desktop
 
