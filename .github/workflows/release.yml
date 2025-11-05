@@ -33,7 +33,7 @@ jobs:
             # Stable release from tag
             VERSION=$(echo "${{ github.ref }}" | sed 's|refs/tags/v||')
             IS_PRERELEASE="false"
-            RELEASE_NAME="Release v${VERSION}"
+            RELEASE_NAME="v${VERSION}"
             TAG_NAME="v${VERSION}"
           else
             # Pre-release from main branch
