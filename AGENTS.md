@@ -298,7 +298,7 @@ Each tool call creates a span with:
 - Name: `tools/call {tool_name}`
 - Attributes: `mcp.method.name`, `mcp.tool.name`, `mcp.request.argument.*`, `mcp.tool.result.*`
 
-See `docs/MCP_TRACING.md` for complete documentation.
+See `docs/MCP_TRACING.md` for complete documentation on span conventions, attributes, and examples.
 
 ## Security Considerations
 

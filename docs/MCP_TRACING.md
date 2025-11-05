@@ -2,6 +2,51 @@
 
 This document describes the MCP (Model Context Protocol) tracing integration with Sentry for the GitHub Actions Utils CLI.
 
+## Quick Start
+
+Automatic instrumentation for MCP tool calls that creates Sentry spans following OpenTelemetry conventions.
+
+### Usage
+
+Register a tool with Sentry tracing:
+
+```go
+mcp.AddTool(server, &mcp.Tool{
+    Name:        "my_tool",
+    Description: "My awesome tool",
+}, WithSentryTracing("my_tool", m.handleMyTool))
+```
+
+That's it! The tool is now automatically traced.
+
+### What Gets Captured
+
+Every tool call creates a span with:
+
+- **Operation**: `mcp.server`
+- **Name**: `tools/call my_tool`
+- **Attributes**:
+  - Method name (`mcp.method.name`)
+  - Tool name (`mcp.tool.name`)
+  - All arguments (`mcp.request.argument.*`)
+  - Result metadata (`mcp.tool.result.*`)
+  - Transport info (`mcp.transport`, `network.transport`)
+  - Error status (`mcp.tool.result.is_error`)
+
+### Benefits
+
+✅ **Zero boilerplate**: One wrapper function, that's it\
+✅ **Type-safe**: Uses Go generics\
+✅ **Automatic**: Arguments and results captured automatically\
+✅ **Standard**: Follows OpenTelemetry MCP conventions\
+✅ **Production-ready**: Error capture, proper span lifecycle
+
+### Disable Telemetry
+
+```bash
+export TELEMETRY_ENABLED=false
+```
+
 ## Overview
 
 The MCP Server integration automatically instruments tool calls with Sentry spans, following the [OpenTelemetry MCP Semantic Conventions](https://github.com/open-telemetry/semantic-conventions/pull/2083). This provides comprehensive observability for MCP tool execution, including:
@@ -18,7 +63,7 @@ The implementation is based on the Sentry JavaScript SDK's MCP integration, adap
 - `internal/cli/mcp/sentry.go` - Tracing wrapper and attribute extraction
 - `internal/cli/mcp/server.go` - Tool registration with tracing
 
-## Usage
+## Detailed Usage
 
 ### Wrapping a Tool Handler
 
@@ -159,6 +204,14 @@ Here's an example of what a tool call span looks like in Sentry:
   }
 }
 ```
+
+## Viewing Traces
+
+In Sentry:
+
+1. Go to **Performance** → **Traces**
+2. Filter by operation: `mcp.server`
+3. See tool calls with full context
 
 ## Comparison with JavaScript SDK
 
