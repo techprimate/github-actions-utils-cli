@@ -268,6 +268,38 @@ export TELEMETRY_ENABLED=false
 
 **Sentry DSN:** `https://445c4c2185068fa980b83ddbe4bf1fd7@o188824.ingest.us.sentry.io/4510306572828672`
 
+### MCP Tracing
+
+The project includes automatic tracing for MCP tool calls following [OpenTelemetry MCP Semantic Conventions](https://github.com/open-telemetry/semantic-conventions/pull/2083).
+
+**Key Features:**
+
+- Automatic span creation for tool calls
+- Detailed attributes (method name, tool name, arguments, results)
+- Error capture and correlation
+- Compatible with Sentry performance monitoring
+
+**Implementation:**
+
+All MCP tools are automatically wrapped with Sentry tracing using the `WithSentryTracing` wrapper:
+
+```go
+mcp.AddTool(server, &mcp.Tool{
+    Name:        "my_tool",
+    Description: "Tool description",
+}, WithSentryTracing("my_tool", m.handleMyTool))
+```
+
+**Span Attributes:**
+
+Each tool call creates a span with:
+
+- Operation: `mcp.server`
+- Name: `tools/call {tool_name}`
+- Attributes: `mcp.method.name`, `mcp.tool.name`, `mcp.request.argument.*`, `mcp.tool.result.*`
+
+See `docs/MCP_TRACING.md` for complete documentation.
+
 ## Security Considerations
 
 - **No credentials in code**: Never commit API keys or certificates
@@ -303,15 +335,13 @@ func (m *MCPServer) handleNewTool(ctx context.Context, req *mcp.CallToolRequest,
 }
 ```
 
-3. Register tool in `internal/cli/mcp/server.go`:
+3. Register tool in `internal/cli/mcp/server.go` with Sentry tracing:
 
 ```go
 mcp.AddTool(server, &mcp.Tool{
     Name:        "new_tool",
     Description: "Description of what the tool does",
-}, func(ctx context.Context, req *mcp.CallToolRequest, args NewToolArgs) (*mcp.CallToolResult, any, error) {
-    return m.handleNewTool(ctx, req, args)
-})
+}, WithSentryTracing("new_tool", m.handleNewTool))
 ```
 
 4. Test the tool:
