@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -28,11 +27,9 @@ func NewMCPServer(actionsService *github.ActionsService, logger *slog.Logger) *M
 
 // RegisterTools registers all available tools with the MCP server.
 func (m *MCPServer) RegisterTools(server *mcp.Server) {
-	// Register get_action_parameters tool
+	// Register get_action_parameters tool with Sentry tracing
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_action_parameters",
 		Description: "Fetch and parse a GitHub Action's action.yml file. Returns the complete action.yml structure including inputs, outputs, runs configuration, and metadata.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, args GetActionParametersArgs) (*mcp.CallToolResult, any, error) {
-		return m.handleGetActionParameters(ctx, req, args)
-	})
+	}, WithSentryTracing("get_action_parameters", m.handleGetActionParameters))
 }
