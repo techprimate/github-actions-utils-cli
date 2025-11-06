@@ -43,7 +43,7 @@ const (
 )
 
 // WithSentryTracing wraps an MCP tool handler with Sentry tracing.
-// It creates spans following OpenTelemetry MCP semantic conventions and
+// It creates transactions following OpenTelemetry MCP semantic conventions and
 // captures tool execution results and errors.
 //
 // Example usage:
@@ -56,56 +56,62 @@ const (
 //	}))
 func WithSentryTracing[In, Out any](toolName string, handler mcp.ToolHandlerFor[In, Out]) mcp.ToolHandlerFor[In, Out] {
 	return func(ctx context.Context, req *mcp.CallToolRequest, args In) (*mcp.CallToolResult, Out, error) {
-		// Create span for tool execution
-		span := sentry.StartSpan(ctx, OpMCPServer)
-		defer span.Finish()
+		// Get the current hub from context or create a new one
+		hub := sentry.GetHubFromContext(ctx)
+		if hub == nil {
+			hub = sentry.CurrentHub().Clone()
+			ctx = sentry.SetHubOnContext(ctx, hub)
+		}
 
-		// Set span name following MCP conventions: "tools/call {tool_name}"
-		span.Description = fmt.Sprintf("tools/call %s", toolName)
+		// Create transaction for tool execution following MCP conventions
+		// Transaction name: "tools/call {tool_name}" (e.g., "tools/call get_action_parameters")
+		transactionName := fmt.Sprintf("tools/call %s", toolName)
+		transaction := sentry.StartTransaction(ctx,
+			transactionName,
+			sentry.WithOpName(OpMCPServer),
+			sentry.WithTransactionSource(sentry.SourceCustom),
+		)
+		defer transaction.Finish()
 
 		// Set common MCP attributes
-		span.SetData(AttrMCPMethodName, "tools/call")
-		span.SetData(AttrMCPToolName, toolName)
-		span.SetData(AttrMCPTransport, TransportStdio)
-		span.SetData(AttrNetworkTransport, NetworkTransportPipe)
-		span.SetData(AttrNetworkProtocolVer, JSONRPCVersion)
+		transaction.SetData(AttrMCPMethodName, "tools/call")
+		transaction.SetData(AttrMCPToolName, toolName)
+		transaction.SetData(AttrMCPTransport, TransportStdio)
+		transaction.SetData(AttrNetworkTransport, NetworkTransportPipe)
+		transaction.SetData(AttrNetworkProtocolVer, JSONRPCVersion)
 
 		// Set Sentry-specific attributes
-		span.SetData("sentry.origin", OriginMCPFunction)
-		span.SetData("sentry.source", SourceMCPRoute)
+		transaction.SetData("sentry.origin", OriginMCPFunction)
+		transaction.SetData("sentry.source", SourceMCPRoute)
 
 		// Extract and set request ID if available
 		if req != nil {
 			// The CallToolRequest may have metadata we can extract
 			// For now, we'll use reflection to check if there's an ID field
-			setRequestMetadata(span, req)
+			setRequestMetadata(transaction, req)
 		}
 
 		// Extract and set tool arguments
-		setToolArguments(span, args)
+		setToolArguments(transaction, args)
 
-		// Execute the handler with the span's context
-		ctx = span.Context()
+		// Execute the handler with the transaction's context
+		ctx = transaction.Context()
 		result, data, err := handler(ctx, req, args)
 
 		// Capture error if present
 		if err != nil {
-			span.Status = sentry.SpanStatusInternalError
-			span.SetData(AttrMCPToolResultIsError, true)
+			transaction.Status = sentry.SpanStatusInternalError
+			transaction.SetData(AttrMCPToolResultIsError, true)
 
 			// Capture the error to Sentry with context
-			hub := sentry.GetHubFromContext(ctx)
-			if hub == nil {
-				hub = sentry.CurrentHub()
-			}
 			hub.CaptureException(err)
 		} else {
-			span.Status = sentry.SpanStatusOK
-			span.SetData(AttrMCPToolResultIsError, false)
+			transaction.Status = sentry.SpanStatusOK
+			transaction.SetData(AttrMCPToolResultIsError, false)
 
 			// Extract result metadata
 			if result != nil {
-				setResultMetadata(span, result)
+				setResultMetadata(transaction, result)
 			}
 		}
 
