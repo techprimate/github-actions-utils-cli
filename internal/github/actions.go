@@ -34,6 +34,9 @@ type ActionRef struct {
 //   - "actions/checkout@v5" -> {Owner: "actions", Repo: "checkout", Version: "v5"}
 //   - "actions/setup-node@v4" -> {Owner: "actions", Repo: "setup-node", Version: "v4"}
 func ParseActionRef(ref string) (*ActionRef, error) {
+	// Trim whitespace (including newlines, spaces, tabs)
+	ref = strings.TrimSpace(ref)
+
 	if ref == "" {
 		return nil, fmt.Errorf("action reference cannot be empty")
 	}
