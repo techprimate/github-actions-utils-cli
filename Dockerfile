@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM buildpack-deps:bookworm
+FROM alpine:3.22.2
 
 # Metadata
 LABEL maintainer="techprimate GmbH <opensource@techprimate.com>"
