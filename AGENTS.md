@@ -249,7 +249,7 @@ All workflows use GitHub Actions:
 - **format.yml** - Checks code formatting with `make format`
 - **release.yml** - Creates GitHub releases with signed binaries (triggered by tags or main branch)
 - **build-binaries.yml** - Reusable workflow that builds for all platforms and signs macOS binaries
-- **docker.yml** - Builds and publishes Docker images to GitHub Container Registry
+- **build-cli-docker.yml** - Builds and publishes Docker images to GitHub Container Registry
 
 **Platforms built:**
 
