@@ -80,7 +80,7 @@ jobs:
             maintainer=techprimate GmbH <opensource@techprimate.com>
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.platform.tag }}
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.platform.tag }},mode=max
-          outputs: type=image,name=docker.io/${{ github.repository }},name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
 
       - name: Export digest
         if: github.event_name != 'pull_request'
@@ -157,32 +157,20 @@ jobs:
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          # Extract all tags
-          image_tags=$(printf '%s' "$DOCKER_METADATA_OUTPUT_JSON" | jq -cr '.tags | map("-t " + .) | join(" ")')
-          echo "Creating manifest list with tags: $image_tags"
-
-          # We need to create separate manifests for each registry
-          # because the digests are registry-specific
-
-          # For each registry, create manifest with its digests
-          for registry in "docker.io/${{ github.repository }}" "ghcr.io/${{ github.repository }}"; do
-            echo "Processing registry: $registry"
-
-            # Get tags for this registry
-            registry_tags=$(printf '%s' "$DOCKER_METADATA_OUTPUT_JSON" | jq -cr --arg registry "$registry" '.tags | map(select(startswith($registry))) | map("-t " + .) | join(" ")')
-
-            # Build digest references for this registry
-            digest_refs=""
-            for digest_file in *; do
-              digest_refs="$digest_refs ${registry}@sha256:${digest_file}"
-            done
-
-            echo "Tags for $registry: $registry_tags"
-            echo "Digest refs: $digest_refs"
-
-            # Create and push manifest for this registry
-            docker buildx imagetools create $registry_tags $digest_refs
+          # Build digest references from GHCR (where images were pushed)
+          digest_refs=""
+          for digest_file in *; do
+            digest_refs="$digest_refs ghcr.io/${{ github.repository }}@sha256:${digest_file}"
           done
+          echo "Digest references: $digest_refs"
+
+          # Get all tags (both GHCR and Docker Hub)
+          all_tags=$(printf '%s' "$DOCKER_METADATA_OUTPUT_JSON" | jq -cr '.tags | map("-t " + .) | join(" ")')
+          echo "Creating manifest list with tags: $all_tags"
+
+          # Create manifest list with all tags (GHCR and Docker Hub)
+          # This will create the manifest in GHCR and simultaneously tag/push to Docker Hub
+          docker buildx imagetools create $all_tags $digest_refs
 
           # Inspect the first tag for verification
           first_tag=$(printf '%s' "$DOCKER_METADATA_OUTPUT_JSON" | jq -cr '.tags[0]')
