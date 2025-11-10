@@ -70,7 +70,7 @@ build:
 
 ## Build Linux binaries for Docker image
 #
-# Builds static Linux binaries for both amd64 and arm64 architectures.
+# Builds static Linux binaries for amd64 architecture.
 # These binaries are used in the Docker multi-platform build.
 .PHONY: build-linux
 build-linux:
@@ -80,11 +80,6 @@ build-linux:
 		-a -installsuffix cgo \
 		-o dist/github-actions-utils-cli-linux-amd64 \
 		./cmd/cli
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-		-ldflags "-s -w -extldflags '-static'" \
-		-a -installsuffix cgo \
-		-o dist/github-actions-utils-cli-linux-arm64 \
-		./cmd/cli
 
 # ============================================================================
 # DOCKER
@@ -92,7 +87,7 @@ build-linux:
 
 ## Build Docker image locally
 #
-# Builds a multi-platform Docker image for local testing.
+# Builds a Docker image for local testing.
 # Requires Linux binaries to be built first (make build-linux).
 # Image is tagged as github-actions-utils-cli:latest
 .PHONY: docker-build
