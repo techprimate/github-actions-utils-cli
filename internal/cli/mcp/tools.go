@@ -57,3 +57,31 @@ func (m *MCPServer) handleGetActionParameters(ctx context.Context, req *mcp.Call
 		},
 	}, params, nil
 }
+
+// GetReadmeArgs defines the parameters for the get_readme tool.
+type GetReadmeArgs struct {
+	RepoRef string `json:"repoRef" jsonschema:"GitHub repository reference (e.g., 'owner/repo@main' or 'owner/repo'). If no ref is provided, defaults to 'main'."`
+}
+
+// handleGetReadme handles the get_readme tool call.
+func (m *MCPServer) handleGetReadme(ctx context.Context, req *mcp.CallToolRequest, args GetReadmeArgs) (*mcp.CallToolResult, any, error) {
+	// Validate input
+	if args.RepoRef == "" {
+		return nil, nil, fmt.Errorf("repoRef is required")
+	}
+
+	// Fetch README content
+	content, err := m.actionsService.GetReadme(args.RepoRef)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get README: %w", err)
+	}
+
+	// Return response with README content
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: content,
+			},
+		},
+	}, map[string]string{"content": content}, nil
+}
