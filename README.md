@@ -1,58 +1,160 @@
-# GitHub Actions Utils CLI
+# GitHub Actions Utils MCP Server
 
-> MCP server for GitHub Actions utilities
+Connect AI tools directly to GitHub Actions. This MCP server gives AI agents, assistants, and chatbots the ability to fetch and analyze GitHub Action definitions, explore available inputs and outputs, and understand action configurations—all through natural language interactions.
 
-A Model Context Protocol (MCP) server that provides tools for working with GitHub Actions. This allows AI agents and MCP clients to programmatically fetch and parse GitHub Action definitions.
+### Use Cases
 
-## Features
+- **Workflow Development**: Quickly discover GitHub Action parameters while building CI/CD workflows
+- **Action Discovery**: Explore available inputs, outputs, and configuration options for any public GitHub Action
+- **Documentation**: Automatically generate documentation for actions used in your workflows
+- **Migration & Updates**: Understand parameter changes when upgrading action versions
+- **Validation**: Verify action configurations before deploying workflows
 
-- **get_action_parameters**: Fetch and parse any GitHub Action's `action.yml` file
-- Returns complete action metadata including inputs, outputs, runs configuration, and description
-- Works with any public GitHub Action repository
-- Compatible with all MCP clients (Claude Desktop, Cline, etc.)
+Built for developers who want to enhance their AI tools with GitHub Actions context, from simple action queries to complex workflow generation.
+
+---
 
 ## Installation
 
-### Download Pre-built Binary (Recommended)
+### Prerequisites
 
-Download the latest release for your platform as described in the [latest release notes](https://github.com/techprimate/github-actions-utils-cli/releases/tag/latest).
+1. A compatible MCP host application:
+   - VS Code 1.101+ with GitHub Copilot
+   - Claude Desktop
+   - Cursor IDE
+   - Windsurf IDE
+   - Any MCP-compatible client
 
-### Build from Source
+2. One of the following:
+   - Pre-built binary (recommended)
+   - Docker
+   - Go 1.25+ (for building from source)
+
+### Quick Install
+
+#### Option 1: Pre-built Binary (Recommended)
+
+**Download the latest release:**
+
+Visit [GitHub Releases](https://github.com/techprimate/github-actions-utils-cli/releases/latest) and download the appropriate binary for your platform:
+
+- **macOS**: `github-actions-utils-cli-darwin-amd64` (Intel) or `github-actions-utils-cli-darwin-arm64` (Apple Silicon)
+- **Linux**: `github-actions-utils-cli-linux-amd64` or `github-actions-utils-cli-linux-arm64`
+- **Windows**: `github-actions-utils-cli-windows-amd64.exe`
+
+**Install:**
 
 ```bash
-# Clone the repository
+# macOS/Linux - move to a directory in your PATH
+sudo mv github-actions-utils-cli-* /usr/local/bin/github-actions-utils-cli
+sudo chmod +x /usr/local/bin/github-actions-utils-cli
+
+# Verify installation
+github-actions-utils-cli --version
+```
+
+#### Option 2: Docker
+
+```bash
+# Pull the image
+docker pull ghcr.io/techprimate/github-actions-utils-cli:latest
+
+# Test it works
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | docker run -i --rm ghcr.io/techprimate/github-actions-utils-cli:latest mcp
+```
+
+#### Option 3: Build from Source
+
+```bash
+# Clone and build
 git clone https://github.com/techprimate/github-actions-utils-cli.git
 cd github-actions-utils-cli
-
-# Build
 make build
 
 # Binary will be at ./dist/github-actions-utils-cli
 ```
 
-## Usage
+---
 
-### MCP Server
+## Configuration
 
-The primary use case is running as an MCP server:
+### VS Code with GitHub Copilot
 
-```bash
-github-actions-utils-cli mcp
+**Prerequisites**: VS Code 1.101+ with GitHub Copilot installed
+
+**Setup**:
+
+1. Open VS Code settings (Cmd/Ctrl + ,)
+2. Search for "MCP"
+3. Click "Edit in settings.json"
+4. Add the server configuration:
+
+<table>
+<tr><th>Using Binary</th><th>Using Docker</th></tr>
+<tr valign=top>
+<td>
+
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "github-actions-utils": {
+      "command": "/usr/local/bin/github-actions-utils-cli",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
-### MCP Client Configuration
+</td>
+<td>
 
-#### Claude CLI
-
-Add to your Claude CLI configuration using the `claude mcp` command:
-
-```bash
-claude mcp add --transport stdio github-actions-utils-cli github-actions-utils-cli mcp
+```json
+{
+  "github.copilot.chat.mcp.servers": {
+    "github-actions-utils": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/techprimate/github-actions-utils-cli:latest",
+        "mcp"
+      ]
+    }
+  }
+}
 ```
 
-#### Claude Desktop
+</td>
+</tr>
+</table>
 
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+5. Restart VS Code
+6. Open Copilot Chat and toggle "Agent mode" to activate MCP tools
+
+**Troubleshooting**:
+
+- Ensure VS Code is version 1.101 or later
+- Verify GitHub Copilot extension is installed and activated
+- Check that the binary path is correct: `which github-actions-utils-cli`
+
+### Claude Desktop
+
+**Prerequisites**: [Claude Desktop](https://claude.ai/download) installed
+
+**Setup**:
+
+1. Locate your Claude configuration file:
+   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+2. Add the server configuration:
+
+<table>
+<tr><th>Using Binary</th><th>Using Docker</th></tr>
+<tr valign=top>
+<td>
 
 ```json
 {
@@ -65,9 +167,54 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 }
 ```
 
-#### Cline (VS Code Extension)
+</td>
+<td>
 
-Add to your Cline MCP settings:
+```json
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/techprimate/github-actions-utils-cli:latest",
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
+</td>
+</tr>
+</table>
+
+3. Restart Claude Desktop
+4. Look for the 🔌 icon in the bottom right to verify the server is connected
+
+**Troubleshooting**:
+
+- Verify the config file is valid JSON
+- Check Claude Desktop logs for connection errors
+- Ensure the binary path is absolute, not relative
+
+### Cursor IDE
+
+**Prerequisites**: [Cursor IDE](https://cursor.sh/) installed
+
+**Setup**:
+
+1. Open Cursor Settings (Cmd/Ctrl + ,)
+2. Navigate to "Cursor Settings" → "MCP"
+3. Click "Edit Config"
+4. Add the server configuration:
+
+<table>
+<tr><th>Using Binary</th><th>Using Docker</th></tr>
+<tr valign=top>
+<td>
 
 ```json
 {
@@ -79,38 +226,128 @@ Add to your Cline MCP settings:
   }
 }
 ```
+
+</td>
+<td>
+
+```json
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/techprimate/github-actions-utils-cli:latest",
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
+</td>
+</tr>
+</table>
+
+5. Restart Cursor
+6. The MCP tools will be available in the AI chat
+
+### Windsurf IDE
+
+**Prerequisites**: [Windsurf IDE](https://codeium.com/windsurf) installed
+
+**Setup**:
+
+1. Open Windsurf Settings
+2. Navigate to "MCP Servers"
+3. Add new server configuration:
+
+<table>
+<tr><th>Using Binary</th><th>Using Docker</th></tr>
+<tr valign=top>
+<td>
+
+```json
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "/usr/local/bin/github-actions-utils-cli",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/techprimate/github-actions-utils-cli:latest",
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
+</td>
+</tr>
+</table>
+
+4. Restart Windsurf
+
+### Other MCP Clients
+
+For other MCP-compatible clients, use the standard MCP configuration format:
+
+```json
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "/usr/local/bin/github-actions-utils-cli",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Refer to your MCP client's documentation for the specific configuration file location.
+
+---
 
 ## Available Tools
 
 ### get_action_parameters
 
-Fetches and parses a GitHub Action's `action.yml` file.
+Fetches and parses a GitHub Action's `action.yml` or `action.yaml` file, returning complete metadata about inputs, outputs, and configuration.
 
 **Parameters:**
 
-- `actionRef` (string, required): GitHub Action reference in the format `owner/repo@version`
-  - Example: `actions/checkout@v5`
-  - Example: `actions/setup-node@v4`
+| Parameter   | Type   | Required | Description                                                |
+| ----------- | ------ | -------- | ---------------------------------------------------------- |
+| `actionRef` | string | Yes      | GitHub Action reference in the format `owner/repo@version` |
 
-**Returns:**
-Complete action.yml structure as JSON, including:
-
-- `name`: Action name
-- `description`: Action description
-- `inputs`: All input parameters with descriptions, defaults, and whether they're required
-- `outputs`: All output parameters with descriptions
-- `runs`: Runtime configuration (node version, main entry point, etc.)
-- `branding`: Icon and color information
-
-**Example Usage in Claude:**
+**Examples:**
 
 ```
-Can you show me the parameters for the actions/checkout@v5 action?
+Can you show me the parameters for actions/checkout@v5?
+
+What inputs does actions/setup-node@v4 accept?
+
+Explain the outputs of docker/build-push-action@v6
 ```
 
-Claude will use the `get_action_parameters` tool and return structured information about all inputs and outputs.
-
-**Example Response:**
+**Response Structure:**
 
 ```json
 {
@@ -119,32 +356,102 @@ Claude will use the `get_action_parameters` tool and return structured informati
   "inputs": {
     "repository": {
       "description": "Repository name with owner. For example, actions/checkout",
+      "required": false,
       "default": "${{ github.repository }}"
     },
     "ref": {
-      "description": "The branch, tag or SHA to checkout...",
-      "default": ""
+      "description": "The branch, tag or SHA to checkout",
+      "required": false
     },
     "token": {
-      "description": "Personal access token (PAT) used to fetch the repository...",
+      "description": "Personal access token (PAT) used to fetch the repository",
+      "required": false,
       "default": "${{ github.token }}"
     }
-    // ... more inputs
+  },
+  "outputs": {
+    "ref": {
+      "description": "The branch, tag or SHA that was checked out"
+    }
   },
   "runs": {
     "using": "node24",
     "main": "dist/index.js"
+  },
+  "branding": {
+    "icon": "download",
+    "color": "blue"
   }
 }
 ```
 
-## Use Cases
+### get_readme
 
-- **Building CI/CD Tools**: Get accurate information about available GitHub Actions
-- **Documentation**: Automatically document which actions your workflows use
-- **Validation**: Verify action parameters before using them in workflows
-- **Discovery**: Explore available inputs and outputs for actions
-- **Migration**: Understand action changes when updating versions
+Fetches the README.md file from a GitHub repository, useful for understanding how to use actions or exploring their documentation.
+
+**Parameters:**
+
+| Parameter | Type   | Required | Description                                                                                             |
+| --------- | ------ | -------- | ------------------------------------------------------------------------------------------------------- |
+| `repoRef` | string | Yes      | GitHub repository reference in the format `owner/repo[@ref]`. If no ref is provided, defaults to `main` |
+
+**Examples:**
+
+```
+Can you get the README for actions/checkout?
+
+Show me the documentation for docker/build-push-action@v6
+
+What does the README say about github/github-mcp-server?
+```
+
+**Response:**
+
+Returns the full README content as markdown text.
+
+---
+
+## Example Workflows
+
+### Discovering Action Parameters
+
+**User**: "What are all the inputs for actions/setup-python@v5?"
+
+**AI Response**: Uses `get_action_parameters` to fetch and explain all available inputs including `python-version`, `cache`, `architecture`, etc.
+
+### Building a Workflow
+
+**User**: "Help me create a workflow that checks out code, sets up Node.js 20, and runs tests"
+
+**AI**: Uses `get_action_parameters` for `actions/checkout@v5` and `actions/setup-node@v4` to understand the correct parameters and generate a complete workflow file.
+
+### Comparing Action Versions
+
+**User**: "What changed between actions/upload-artifact@v3 and @v4?"
+
+**AI**: Fetches both versions using `get_action_parameters` and highlights the differences in inputs, outputs, and behavior.
+
+### Exploring New Actions
+
+**User**: "Show me how to use aws-actions/configure-aws-credentials"
+
+**AI**: Uses `get_readme` to fetch documentation and `get_action_parameters` to understand all configuration options.
+
+---
+
+## Telemetry
+
+This project uses Sentry for error tracking and performance monitoring to help improve the tool.
+
+**Disable telemetry:**
+
+```bash
+export TELEMETRY_ENABLED=false
+```
+
+Add this to your shell profile (`.bashrc`, `.zshrc`, etc.) to make it permanent.
+
+---
 
 ## Development
 
@@ -152,11 +459,16 @@ Claude will use the `get_action_parameters` tool and return structured informati
 
 - Go 1.25 or later
 - Make
+- [dprint](https://dprint.dev/) (for formatting)
 
 ### Setup
 
 ```bash
-# Initialize project (installs dependencies)
+# Clone the repository
+git clone https://github.com/techprimate/github-actions-utils-cli.git
+cd github-actions-utils-cli
+
+# Install dependencies
 make init
 
 # Build
@@ -168,7 +480,7 @@ make test
 # Format code
 make format
 
-# Run static analysis
+# Run static analysis (vet, staticcheck, govulncheck)
 make analyze
 ```
 
@@ -176,48 +488,125 @@ make analyze
 
 ```
 .
-├── cmd/cli/              # CLI entry point
+├── cmd/cli/              # CLI entry point with main.go
 ├── internal/
 │   ├── cli/
-│   │   ├── cmd/          # Cobra commands
-│   │   └── mcp/          # MCP server and tools
-│   ├── github/           # GitHub Actions service
-│   └── logging/          # Logging utilities
+│   │   ├── cmd/          # Cobra commands (root, mcp)
+│   │   └── mcp/          # MCP server and tool handlers
+│   ├── github/           # GitHub Actions fetcher and parser
+│   └── logging/          # Multi-handler for Sentry integration
 ├── .github/workflows/    # CI/CD pipelines
-├── Makefile             # Development commands
+├── docs/                 # Documentation
+├── Makefile             # Build commands
 └── README.md            # This file
 ```
 
-### Testing the MCP Server
+### Testing
+
+```bash
+# Run all tests
+make test
+
+# Run with coverage
+go test -cover ./...
+
+# Test specific package
+go test ./internal/github/
+
+# Run with race detection
+go test -race ./...
+```
+
+### Manual MCP Testing
+
+**Important**: MCP servers communicate via JSON-RPC over stdin/stdout and are designed to be used by MCP clients, not directly from the command line. The server is working correctly when no output appears - it's waiting for proper JSON-RPC formatted input from an MCP client.
+
+To verify the server is working:
 
 ```bash
 # Build the CLI
 make build
 
-# Test that MCP server responds
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | ./dist/github-actions-utils-cli mcp
+# Test that the server starts (it should produce an error about invalid message format)
+echo '{}' | ./dist/github-actions-utils-cli mcp
+# Output: Error: invalid message version tag ""; expected "2.0"
+# This confirms the server is reading stdin and validating JSON-RPC messages
 
-# Test get_action_parameters tool
-echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_action_parameters","arguments":{"actionRef":"actions/checkout@v5"}}}' | ./dist/github-actions-utils-cli mcp | jq
+# Verify binary is executable
+./dist/github-actions-utils-cli --version
 ```
 
-## Telemetry
+**To actually test the tools**, configure the server in an MCP client (VS Code, Claude Desktop, Cursor, etc.) using the configuration examples above, then use natural language queries:
 
-This project uses Sentry for error tracking and monitoring. You can disable telemetry by setting the environment variable:
+- "Show me the parameters for actions/checkout@v5"
+- "Get the README for github/github-mcp-server"
 
-```bash
-export TELEMETRY_ENABLED=false
-```
+The MCP client will handle the JSON-RPC communication and present results in a user-friendly format.
+
+### Adding New Tools
+
+See [AGENTS.md](./AGENTS.md) for detailed instructions on adding new MCP tools.
+
+Quick overview:
+
+1. Define arguments struct in `internal/cli/mcp/tools.go`
+2. Implement handler function
+3. Register tool in `internal/cli/mcp/server.go`
+4. Add tests
+5. Update README
+
+---
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please see our contributing guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes using [Conventional Commits](https://www.conventionalcommits.org/)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Commit Message Format
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add support for private actions
+fix: handle action.yaml extension
+docs: update installation instructions
+```
+
+---
+
+## Security
+
+### Reporting Security Issues
+
+Please report security vulnerabilities to [security@techprimate.com](mailto:security@techprimate.com).
+
+### Security Best Practices
+
+- This tool only fetches publicly accessible GitHub Action definitions
+- No authentication tokens are required or stored
+- All network requests go through GitHub's public raw content CDN
+- Sentry telemetry can be disabled via environment variable
+
+---
 
 ## License
 
-This project is open source and available under the MIT License.
+This project is licensed under the terms of the MIT License. See [LICENSE](./LICENSE) for details.
 
-## Related Projects
+---
 
-- [Model Context Protocol](https://github.com/modelcontextprotocol) - The MCP specification
-- [GitHub Actions](https://github.com/features/actions) - GitHub's CI/CD platform
+## Support
+
+- 📖 [Documentation](./docs/)
+- 💬 [GitHub Discussions](https://github.com/techprimate/github-actions-utils-cli/discussions)
+- 🐛 [Issue Tracker](https://github.com/techprimate/github-actions-utils-cli/issues)
+- 🌟 [Star on GitHub](https://github.com/techprimate/github-actions-utils-cli)
+
+---
+
+**Made with ❤️ by [techprimate](https://github.com/techprimate)**
