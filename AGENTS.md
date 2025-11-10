@@ -249,12 +249,94 @@ All workflows use GitHub Actions:
 - **format.yml** - Checks code formatting with `make format`
 - **release.yml** - Creates GitHub releases with signed binaries (triggered by tags or main branch)
 - **build-binaries.yml** - Reusable workflow that builds for all platforms and signs macOS binaries
+- **build-cli-docker.yml** - Builds and publishes Docker images to GitHub Container Registry
 
 **Platforms built:**
 
 - Linux: amd64, arm64
 - macOS: amd64 (Intel), arm64 (Apple Silicon) - **code signed and notarized**
 - Windows: amd64
+
+## Docker Deployment
+
+The project provides Docker images for easy deployment and containerized usage.
+
+**Docker commands:**
+
+```bash
+# Build Linux binaries for Docker
+make build-linux
+
+# Build Docker image locally
+make docker-build
+
+# Test Docker image
+make docker-test
+
+# Run Docker container
+make docker-run
+```
+
+**Image details:**
+
+- **Registries**:
+  - `ghcr.io/techprimate/github-actions-utils-cli` (GitHub Container Registry)
+  - `docker.io/techprimate/github-actions-utils-cli` (Docker Hub)
+- **Base image**: `buildpack-deps:bookworm`
+- **Platforms**: linux/amd64, linux/arm64
+
+**Using the Docker image:**
+
+```bash
+# Pull latest image (from GitHub Container Registry)
+docker pull ghcr.io/techprimate/github-actions-utils-cli:latest
+
+# Or from Docker Hub
+docker pull docker.io/techprimate/github-actions-utils-cli:latest
+
+# Run MCP server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | \
+  docker run -i --rm ghcr.io/techprimate/github-actions-utils-cli:latest mcp
+
+# Use with MCP clients (Claude, Cursor, etc.)
+# Configure in MCP client settings:
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/techprimate/github-actions-utils-cli:latest",
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
+**Publishing images:**
+
+Docker images are automatically built and published by the `build-cli-docker.yml` workflow:
+
+- On **main branch push**: Tagged as `latest`
+- On **version tags** (v1.0.0): Tagged as `1.0.0`, `1.0`, and `1`
+- On **pull requests**: Built but not pushed (validation only)
+
+**Manual Docker build:**
+
+```bash
+# Build for specific platform
+docker build --platform linux/amd64 -t github-actions-utils-cli:latest .
+
+# Build multi-platform (requires buildx)
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t github-actions-utils-cli:latest \
+  --load \
+  .
+```
 
 ## Sentry Integration
 
