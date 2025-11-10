@@ -98,7 +98,7 @@ build-linux:
 .PHONY: docker-build
 docker-build: build-linux
 	docker buildx build \
-		--platform linux/amd64,linux/arm64 \
+		--platform linux/amd64 \
 		-t github-actions-utils-cli:latest \
 		--load \
 		.
