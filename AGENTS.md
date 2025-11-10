@@ -318,7 +318,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | \
 
 **Publishing images:**
 
-Docker images are automatically built and published by the `docker.yml` workflow:
+Docker images are automatically built and published by the `build-cli-docker.yml` workflow:
 
 - On **main branch push**: Tagged as `latest`
 - On **version tags** (v1.0.0): Tagged as `1.0.0`, `1.0`, and `1`
