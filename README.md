@@ -56,8 +56,11 @@ github-actions-utils-cli --version
 #### Option 2: Docker
 
 ```bash
-# Pull the image
+# Pull the image (from GitHub Container Registry)
 docker pull ghcr.io/techprimate/github-actions-utils-cli:latest
+
+# Or from Docker Hub
+docker pull docker.io/techprimate/github-actions-utils-cli:latest
 
 # Test it works
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | docker run -i --rm ghcr.io/techprimate/github-actions-utils-cli:latest mcp
@@ -515,6 +518,57 @@ go test ./internal/github/
 
 # Run with race detection
 go test -race ./...
+```
+
+### Docker Development
+
+Build and test Docker images locally:
+
+```bash
+# Build Linux binaries for Docker
+make build-linux
+
+# Build Docker image (multi-platform)
+make docker-build
+
+# Test the Docker image
+make docker-test
+
+# Run interactively
+make docker-run
+
+# Or use docker directly
+docker run --rm -i ghcr.io/techprimate/github-actions-utils-cli:latest mcp
+```
+
+**Docker Image Details:**
+
+- **Base Image**: `buildpack-deps:bookworm` (includes common build tools and certificates)
+- **Platforms**: `linux/amd64`, `linux/arm64`
+- **Registries**:
+  - `ghcr.io/techprimate/github-actions-utils-cli` (GitHub Container Registry)
+  - `docker.io/techprimate/github-actions-utils-cli` (Docker Hub)
+- **Tags**:
+  - `latest` - Latest main branch build
+  - `v1.0.0` - Specific version releases
+  - `1.0` - Major.minor version
+  - `1` - Major version
+
+**Manual Docker Build:**
+
+```bash
+# Build binaries
+make build-linux
+
+# Build for specific platform
+docker build --platform linux/amd64 -t github-actions-utils-cli:latest .
+
+# Build multi-platform (requires buildx)
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t github-actions-utils-cli:latest \
+  --load \
+  .
 ```
 
 ### Manual MCP Testing

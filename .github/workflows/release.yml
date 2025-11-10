@@ -6,6 +6,7 @@ on:
       - "v*.*.*"
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -28,8 +29,16 @@ jobs:
         id: metadata
         shell: bash
         run: |
+          # Check if this is a pull request (dry run)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "🔍 Pull Request detected - running in DRY RUN mode"
+            COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            VERSION="pr-${{ github.event.pull_request.number }}-${COMMIT_SHA}"
+            IS_PRERELEASE="true"
+            RELEASE_NAME="PR #${{ github.event.pull_request.number }} Test Build"
+            TAG_NAME="pr-${{ github.event.pull_request.number }}"
           # Check if this is a tag push (release) or branch push (pre-release)
-          if echo "${{ github.ref }}" | grep -q "^refs/tags/v"; then
+          elif echo "${{ github.ref }}" | grep -q "^refs/tags/v"; then
             # Stable release from tag
             VERSION=$(echo "${{ github.ref }}" | sed 's|refs/tags/v||')
             IS_PRERELEASE="false"
@@ -58,22 +67,33 @@ jobs:
           echo "Release Name: $RELEASE_NAME"
           echo "Tag Name: $TAG_NAME"
 
-  build:
-    name: Build Binaries
+  build-cli-binaries:
+    name: Build CLI Binaries
     needs: prepare
     uses: ./.github/workflows/build-binaries.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
       commit_sha: ${{ needs.prepare.outputs.commit_sha }}
       build_date: ${{ needs.prepare.outputs.build_date }}
-    secrets:
-      DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
-      DEVELOPER_ID_PASSWORD: ${{ secrets.DEVELOPER_ID_PASSWORD }}
-      APPLE_NOTARIZATION_APPLE_ID_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID_PASSWORD }}
+    secrets: inherit
+
+  build-cli-docker:
+    name: Build CLI Docker Images
+    needs: [prepare, build-cli-binaries]
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    uses: ./.github/workflows/build-cli-docker.yml
+    with:
+      tag_name: ${{ needs.prepare.outputs.tag_name }}
+      is_prerelease: ${{ needs.prepare.outputs.is_prerelease }}
+    secrets: inherit
 
   release:
     name: Create Release
-    needs: [prepare, build]
+    needs: [prepare, build-cli-binaries, build-cli-docker]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -113,7 +133,7 @@ jobs:
           cat dist/release-notes.md
 
       - name: Delete existing latest release (pre-release only)
-        if: needs.prepare.outputs.is_prerelease == 'true'
+        if: needs.prepare.outputs.is_prerelease == 'true' && github.event_name != 'pull_request'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -122,6 +142,7 @@ jobs:
           gh release delete latest --yes --cleanup-tag || true
 
       - name: Create Release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.prepare.outputs.release_name }}
@@ -136,3 +157,20 @@ jobs:
             dist/checksums.txt
           draft: false
           prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+
+  release-required-check:
+    name: Release - Required Check
+    needs:
+      - prepare
+      - build-cli-binaries
+      - build-cli-docker
+      - release
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # If any jobs we depend on fail, get cancelled, or time out, this job will fail.
+      # Skipped jobs are not considered failures.
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the release jobs has failed." && exit 1

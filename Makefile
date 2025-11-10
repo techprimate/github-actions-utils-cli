@@ -68,6 +68,57 @@ build:
 	mkdir -p dist
 	go build -o dist/github-actions-utils-cli ./cmd/cli
 
+## Build Linux binaries for Docker image
+#
+# Builds static Linux binaries for both amd64 and arm64 architectures.
+# These binaries are used in the Docker multi-platform build.
+.PHONY: build-linux
+build-linux:
+	mkdir -p dist
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+		-ldflags "-s -w -extldflags '-static'" \
+		-a -installsuffix cgo \
+		-o dist/github-actions-utils-cli-linux-amd64 \
+		./cmd/cli
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+		-ldflags "-s -w -extldflags '-static'" \
+		-a -installsuffix cgo \
+		-o dist/github-actions-utils-cli-linux-arm64 \
+		./cmd/cli
+
+# ============================================================================
+# DOCKER
+# ============================================================================
+
+## Build Docker image locally
+#
+# Builds a multi-platform Docker image for local testing.
+# Requires Linux binaries to be built first (make build-linux).
+# Image is tagged as github-actions-utils-cli:latest
+.PHONY: docker-build
+docker-build: build-linux
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-t github-actions-utils-cli:latest \
+		--load \
+		.
+
+## Run Docker container interactively
+#
+# Runs the Docker image with an interactive shell.
+# Useful for testing the CLI within the container environment.
+.PHONY: docker-run
+docker-run:
+	docker run --rm -it github-actions-utils-cli:latest --help
+
+## Test Docker image
+#
+# Builds and tests the Docker image by running version check.
+# Verifies that the image works correctly.
+.PHONY: docker-test
+docker-test: docker-build
+	docker run --rm github-actions-utils-cli:latest --version
+
 # ============================================================================
 # DEVELOPMENT & RUNNING
 # ============================================================================
