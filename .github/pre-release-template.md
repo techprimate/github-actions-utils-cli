@@ -42,6 +42,39 @@ sudo mv github-actions-utils-cli /usr/local/bin/
 
 Download `github-actions-utils-cli-windows-amd64.exe` and add it to your PATH.
 
+#### Docker
+
+```bash
+# Pull from GitHub Container Registry
+docker pull ghcr.io/techprimate/github-actions-utils-cli:latest
+
+# Or pull from Docker Hub
+docker pull docker.io/techprimate/github-actions-utils-cli:latest
+
+# Run MCP server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | \
+  docker run -i --rm ghcr.io/techprimate/github-actions-utils-cli:latest mcp
+```
+
+For MCP client configuration (Claude Desktop, Cursor, etc.):
+
+```json
+{
+  "mcpServers": {
+    "github-actions-utils": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "ghcr.io/techprimate/github-actions-utils-cli:latest",
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
 ### What's New?
 
 See the [commit history](https://github.com/{{REPOSITORY}}/commits/main) for recent changes.
