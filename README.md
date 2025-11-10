@@ -1,5 +1,14 @@
 # GitHub Actions Utils MCP Server
 
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/techprimate/github-actions-utils-cli?style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/techprimate/github-actions-utils-cli/build.yml?branch=main&style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/actions/workflows/build.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/techprimate/github-actions-utils-cli/test.yml?branch=main&style=flat-square&label=tests)](https://github.com/techprimate/github-actions-utils-cli/actions/workflows/test.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/techprimate/github-actions-utils-cli?style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/blob/main/go.mod)
+[![License](https://img.shields.io/github/license/techprimate/github-actions-utils-cli?style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/blob/main/LICENSE)
+[![Docker Image Size](https://img.shields.io/docker/image-size/techprimate/github-actions-utils-cli/latest?style=flat-square)](https://hub.docker.com/r/techprimate/github-actions-utils-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/techprimate/github-actions-utils-cli?style=flat-square)](https://goreportcard.com/report/github.com/techprimate/github-actions-utils-cli)
+[![MCP](https://img.shields.io/badge/MCP-compatible-blue?style=flat-square)](https://modelcontextprotocol.io)
+
 Connect AI tools directly to GitHub Actions. This MCP server gives AI agents, assistants, and chatbots the ability to fetch and analyze GitHub Action definitions, explore available inputs and outputs, and understand action configurations—all through natural language interactions.
 
 ### Use Cases
