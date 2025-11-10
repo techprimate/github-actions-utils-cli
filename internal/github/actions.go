@@ -3,9 +3,7 @@ package github
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -22,84 +20,38 @@ func NewActionsService() *ActionsService {
 	}
 }
 
-// ActionRef represents a parsed GitHub Action reference.
-type ActionRef struct {
-	Owner   string
-	Repo    string
-	Version string
-}
-
 // ParseActionRef parses an action reference string like "owner/repo@version".
+// The version part is required for actions.
 // Examples:
 //   - "actions/checkout@v5" -> {Owner: "actions", Repo: "checkout", Version: "v5"}
 //   - "actions/setup-node@v4" -> {Owner: "actions", Repo: "setup-node", Version: "v4"}
-func ParseActionRef(ref string) (*ActionRef, error) {
-	// Trim whitespace (including newlines, spaces, tabs)
-	ref = strings.TrimSpace(ref)
-
-	if ref == "" {
-		return nil, fmt.Errorf("action reference cannot be empty")
-	}
-
-	// Split by @ to separate repo from version
-	parts := strings.Split(ref, "@")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid action reference format: expected 'owner/repo@version', got '%s'", ref)
-	}
-
-	repoPath := parts[0]
-	version := parts[1]
-
-	// Split repo path by / to get owner and repo
-	repoParts := strings.Split(repoPath, "/")
-	if len(repoParts) != 2 {
-		return nil, fmt.Errorf("invalid repository path: expected 'owner/repo', got '%s'", repoPath)
-	}
-
-	owner := repoParts[0]
-	repo := repoParts[1]
-
-	if owner == "" || repo == "" || version == "" {
-		return nil, fmt.Errorf("owner, repo, and version must all be non-empty")
-	}
-
-	return &ActionRef{
-		Owner:   owner,
-		Repo:    repo,
-		Version: version,
-	}, nil
+func ParseActionRef(ref string) (*Ref, error) {
+	return ParseRef(ref, true, "")
 }
 
-// FetchActionYAML fetches the action.yml file from GitHub's raw content CDN.
-// It constructs the URL in the format:
+// FetchActionYAML fetches the action.yml or action.yaml file from GitHub's raw content CDN.
+// It tries both common action file names in order of preference.
+// It constructs the URL using tags format:
 // https://raw.githubusercontent.com/{owner}/{repo}/refs/tags/{version}/action.yml
 func (s *ActionsService) FetchActionYAML(owner, repo, version string) ([]byte, error) {
-	// Construct URL to raw action.yml on GitHub
-	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/refs/tags/%s/action.yml",
-		owner, repo, version)
+	// Try common action filenames in order of preference
+	actionFilenames := []string{"action.yml", "action.yaml"}
+	urlPath := fmt.Sprintf("refs/tags/%s", version)
 
-	// Make HTTP GET request
-	resp, err := s.httpClient.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch action.yml: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Check for HTTP errors
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("action.yml not found at %s (status: 404) - verify the action reference and version", url)
+	var lastErr error
+	for _, filename := range actionFilenames {
+		data, err := s.FetchRawFile(owner, repo, urlPath, filename)
+		if err == nil {
+			return data, nil
 		}
-		return nil, fmt.Errorf("failed to fetch action.yml from %s (status: %d)", url, resp.StatusCode)
+		lastErr = err
 	}
 
-	// Read response body
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read action.yml response: %w", err)
+	// If we get here, none of the action files were found
+	if lastErr != nil {
+		return nil, fmt.Errorf("action.yml or action.yaml not found for %s/%s@%s: %w", owner, repo, version, lastErr)
 	}
-
-	return data, nil
+	return nil, fmt.Errorf("action.yml or action.yaml not found for %s/%s@%s", owner, repo, version)
 }
 
 // ParseActionYAML parses YAML data into a map that can be JSON-encoded.
@@ -153,4 +105,58 @@ func (s *ActionsService) GetActionParametersJSON(actionRef string) (string, erro
 	}
 
 	return string(jsonData), nil
+}
+
+// ParseRepoRef parses a repository reference string like "owner/repo@ref".
+// The ref can be a tag, branch name, or commit SHA.
+// If no ref is provided (e.g., "owner/repo"), it defaults to "main".
+// Examples:
+//   - "actions/checkout@v5" -> {Owner: "actions", Repo: "checkout", Version: "v5"}
+//   - "owner/repo@main" -> {Owner: "owner", Repo: "repo", Version: "main"}
+//   - "owner/repo" -> {Owner: "owner", Repo: "repo", Version: "main"}
+func ParseRepoRef(ref string) (*Ref, error) {
+	return ParseRef(ref, false, "main")
+}
+
+// FetchReadme fetches the README.md file from GitHub's raw content CDN.
+// It tries multiple common README filenames in order of preference.
+// The ref can be a branch name, tag, or commit SHA.
+func (s *ActionsService) FetchReadme(owner, repo, ref string) (string, error) {
+	// Try common README filenames in order of preference
+	readmeNames := []string{"README.md", "readme.md", "Readme.md", "README", "readme"}
+	urlPath := fmt.Sprintf("refs/heads/%s", ref)
+
+	var lastErr error
+	for _, filename := range readmeNames {
+		data, err := s.FetchRawFile(owner, repo, urlPath, filename)
+		if err == nil {
+			return string(data), nil
+		}
+		lastErr = err
+	}
+
+	// If we get here, none of the README files were found
+	if lastErr != nil {
+		return "", fmt.Errorf("README not found in repository %s/%s@%s: %w", owner, repo, ref, lastErr)
+	}
+	return "", fmt.Errorf("README not found in repository %s/%s@%s", owner, repo, ref)
+}
+
+// GetReadme fetches a README.md file from a GitHub repository.
+// It takes a repository reference (e.g., "owner/repo@main" or "owner/repo") and returns
+// the README content as a string. If no ref is provided, it defaults to "main".
+func (s *ActionsService) GetReadme(repoRef string) (string, error) {
+	// Parse the repository reference
+	ref, err := ParseRepoRef(repoRef)
+	if err != nil {
+		return "", fmt.Errorf("invalid repository reference: %w", err)
+	}
+
+	// Fetch the README file
+	content, err := s.FetchReadme(ref.Owner, ref.Repo, ref.Version)
+	if err != nil {
+		return "", err
+	}
+
+	return content, nil
 }

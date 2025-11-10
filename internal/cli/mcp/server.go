@@ -27,9 +27,12 @@ func NewMCPServer(actionsService *github.ActionsService, logger *slog.Logger) *M
 
 // RegisterTools registers all available tools with the MCP server.
 func (m *MCPServer) RegisterTools(server *mcp.Server) {
-	// Register get_action_parameters tool with Sentry tracing
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_action_parameters",
 		Description: "Fetch and parse a GitHub Action's action.yml file. Returns the complete action.yml structure including inputs, outputs, runs configuration, and metadata.",
 	}, WithSentryTracing("get_action_parameters", m.handleGetActionParameters))
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "get_readme",
+		Description: "Fetch the README.md file from a GitHub repository. Takes a repository reference (e.g., 'owner/repo@main' or 'owner/repo'). If no ref is provided, defaults to 'main' branch.",
+	}, WithSentryTracing("get_readme", m.handleGetReadme))
 }
