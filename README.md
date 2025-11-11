@@ -1,17 +1,48 @@
-# GitHub Actions Utils MCP Server
+# GitHub Actions Utils MCP Server - Connect AI tools directly to GitHub Actions
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/techprimate/github-actions-utils-cli?style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/techprimate/github-actions-utils-cli/build.yml?branch=main&style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/actions/workflows/build.yml)
-[![Tests](https://img.shields.io/github/actions/workflow/status/techprimate/github-actions-utils-cli/test.yml?branch=main&style=flat-square&label=tests)](https://github.com/techprimate/github-actions-utils-cli/actions/workflows/test.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/techprimate/github-actions-utils-cli?style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/blob/main/go.mod)
-[![License](https://img.shields.io/github/license/techprimate/github-actions-utils-cli?style=flat-square)](https://github.com/techprimate/github-actions-utils-cli/blob/main/LICENSE)
-[![Docker Image Size](https://img.shields.io/docker/image-size/techprimate/github-actions-utils-cli/latest?style=flat-square)](https://hub.docker.com/r/techprimate/github-actions-utils-cli)
-[![Go Report Card](https://goreportcard.com/badge/github.com/techprimate/github-actions-utils-cli?style=flat-square)](https://goreportcard.com/report/github.com/techprimate/github-actions-utils-cli)
-[![MCP](https://img.shields.io/badge/MCP-compatible-blue?style=flat-square)](https://modelcontextprotocol.io)
+<div align="center">
+  <a href="https://github.com/techprimate/github-actions-utils-cli/releases/latest">
+    <img src="https://img.shields.io/github/v/release/techprimate/github-actions-utils-cli?style=flat-square" alt="GitHub Release">
+  </a>
+  <a href="https://github.com/techprimate/github-actions-utils-cli/actions/workflows/build.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/techprimate/github-actions-utils-cli/build.yml?branch=main&style=flat-square" alt="Build Status">
+  </a>
+  <a href="https://github.com/techprimate/github-actions-utils-cli/actions/workflows/test.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/techprimate/github-actions-utils-cli/test.yml?branch=main&style=flat-square&label=tests" alt="Tests">
+  </a>
+  <img src="https://img.shields.io/github/go-mod/go-version/techprimate/github-actions-utils-cli?style=flat-square" alt="Go Version">
+  <img src="https://img.shields.io/github/license/techprimate/github-actions-utils-cli?style=flat-square" alt="License">
+  <a href="https://modelcontextprotocol.io">
+    <img src="https://img.shields.io/badge/MCP-compatible-blue?style=flat-square" alt="MCP Compatible">
+  </a>
+</div>
 
-Connect AI tools directly to GitHub Actions. This MCP server gives AI agents, assistants, and chatbots the ability to fetch and analyze GitHub Action definitions, explore available inputs and outputs, and understand action configurations—all through natural language interactions.
+<div align="center">
+  <img src="https://img.shields.io/docker/image-size/techprimate/github-actions-utils-cli/latest?style=flat-square" alt="Docker Image Size">
+  <a href="https://goreportcard.com/report/github.com/techprimate/github-actions-utils-cli">
+    <img src="https://goreportcard.com/badge/github.com/techprimate/github-actions-utils-cli?style=flat-square" alt="Go Report Card">
+  </a>
+</div>
 
-### Use Cases
+<p align="center">
+  <sub>Created and maintained by <a href="https://github.com/techprimate">techprimate</a> and all the amazing <a href="https://github.com/techprimate/github-actions-utils-cli/graphs/contributors">contributors</a>.</sub>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a>
+  • <a href="#tools">Tools</a>
+  • <a href="#installation">Installation</a>
+  • <a href="#configuration">Configuration</a>
+  • <a href="#example-workflows">Examples</a>
+  • <a href="#development">Development</a>
+  • <a href="#license">License</a>
+</p>
+
+## About
+
+An MCP (Model Context Protocol) server that gives AI agents, assistants, and chatbots the ability to fetch and analyze GitHub Action definitions, explore available inputs and outputs, and understand action configurations—all through natural language interactions.
+
+**Use Cases:**
 
 - **Workflow Development**: Quickly discover GitHub Action parameters while building CI/CD workflows
 - **Action Discovery**: Explore available inputs, outputs, and configuration options for any public GitHub Action
@@ -19,7 +50,73 @@ Connect AI tools directly to GitHub Actions. This MCP server gives AI agents, as
 - **Migration & Updates**: Understand parameter changes when upgrading action versions
 - **Validation**: Verify action configurations before deploying workflows
 
-Built for developers who want to enhance their AI tools with GitHub Actions context, from simple action queries to complex workflow generation.
+## Features
+
+- Fetch GitHub Action parameters (`get_action_parameters` tool)
+- Fetch README documentation from GitHub repositories (`get_readme` tool)
+- Docker support for easy deployment
+- Cross-platform (macOS, Linux, Windows)
+- Works with VS Code, Claude Desktop, Cursor, Windsurf, and more
+
+## Tools
+
+### `get_action_parameters`
+
+Fetches and parses a GitHub Action's `action.yml` file, returning complete metadata about inputs, outputs, and configuration.
+
+**Parameters:**
+
+- `actionRef` (required): GitHub Action reference in format `owner/repo@version`
+
+**Example queries:**
+
+```
+Can you show me the parameters for actions/checkout@v5?
+What inputs does actions/setup-node@v4 accept?
+Explain the outputs of docker/build-push-action@v6
+```
+
+### `get_readme`
+
+Fetches the README.md file from a GitHub repository for understanding action documentation.
+
+**Parameters:**
+
+- `repoRef` (required): GitHub repository reference in format `owner/repo[@ref]` (defaults to `main` if no ref provided)
+
+**Example queries:**
+
+```
+Can you get the README for actions/checkout?
+Show me the documentation for docker/build-push-action@v6
+What does the README say about github/github-mcp-server?
+```
+
+## Example Workflows
+
+**Discovering Action Parameters**
+
+> "What are all the inputs for actions/setup-python@v5?"
+
+AI fetches and explains all available inputs including `python-version`, `cache`, `architecture`, etc.
+
+**Building a Workflow**
+
+> "Help me create a workflow that checks out code, sets up Node.js 20, and runs tests"
+
+AI uses both tools to understand the correct parameters and generate a complete workflow file.
+
+**Comparing Action Versions**
+
+> "What changed between actions/upload-artifact@v3 and @v4?"
+
+AI fetches both versions and highlights the differences in inputs, outputs, and behavior.
+
+**Exploring New Actions**
+
+> "Show me how to use aws-actions/configure-aws-credentials"
+
+AI uses `get_readme` to fetch documentation and `get_action_parameters` to understand all configuration options.
 
 ---
 
@@ -334,120 +431,6 @@ For other MCP-compatible clients, use the standard MCP configuration format:
 ```
 
 Refer to your MCP client's documentation for the specific configuration file location.
-
----
-
-## Available Tools
-
-### get_action_parameters
-
-Fetches and parses a GitHub Action's `action.yml` or `action.yaml` file, returning complete metadata about inputs, outputs, and configuration.
-
-**Parameters:**
-
-| Parameter   | Type   | Required | Description                                                |
-| ----------- | ------ | -------- | ---------------------------------------------------------- |
-| `actionRef` | string | Yes      | GitHub Action reference in the format `owner/repo@version` |
-
-**Examples:**
-
-```
-Can you show me the parameters for actions/checkout@v5?
-
-What inputs does actions/setup-node@v4 accept?
-
-Explain the outputs of docker/build-push-action@v6
-```
-
-**Response Structure:**
-
-```json
-{
-  "name": "Checkout",
-  "description": "Checkout a Git repository at a particular version",
-  "inputs": {
-    "repository": {
-      "description": "Repository name with owner. For example, actions/checkout",
-      "required": false,
-      "default": "${{ github.repository }}"
-    },
-    "ref": {
-      "description": "The branch, tag or SHA to checkout",
-      "required": false
-    },
-    "token": {
-      "description": "Personal access token (PAT) used to fetch the repository",
-      "required": false,
-      "default": "${{ github.token }}"
-    }
-  },
-  "outputs": {
-    "ref": {
-      "description": "The branch, tag or SHA that was checked out"
-    }
-  },
-  "runs": {
-    "using": "node24",
-    "main": "dist/index.js"
-  },
-  "branding": {
-    "icon": "download",
-    "color": "blue"
-  }
-}
-```
-
-### get_readme
-
-Fetches the README.md file from a GitHub repository, useful for understanding how to use actions or exploring their documentation.
-
-**Parameters:**
-
-| Parameter | Type   | Required | Description                                                                                             |
-| --------- | ------ | -------- | ------------------------------------------------------------------------------------------------------- |
-| `repoRef` | string | Yes      | GitHub repository reference in the format `owner/repo[@ref]`. If no ref is provided, defaults to `main` |
-
-**Examples:**
-
-```
-Can you get the README for actions/checkout?
-
-Show me the documentation for docker/build-push-action@v6
-
-What does the README say about github/github-mcp-server?
-```
-
-**Response:**
-
-Returns the full README content as markdown text.
-
----
-
-## Example Workflows
-
-### Discovering Action Parameters
-
-**User**: "What are all the inputs for actions/setup-python@v5?"
-
-**AI Response**: Uses `get_action_parameters` to fetch and explain all available inputs including `python-version`, `cache`, `architecture`, etc.
-
-### Building a Workflow
-
-**User**: "Help me create a workflow that checks out code, sets up Node.js 20, and runs tests"
-
-**AI**: Uses `get_action_parameters` for `actions/checkout@v5` and `actions/setup-node@v4` to understand the correct parameters and generate a complete workflow file.
-
-### Comparing Action Versions
-
-**User**: "What changed between actions/upload-artifact@v3 and @v4?"
-
-**AI**: Fetches both versions using `get_action_parameters` and highlights the differences in inputs, outputs, and behavior.
-
-### Exploring New Actions
-
-**User**: "Show me how to use aws-actions/configure-aws-credentials"
-
-**AI**: Uses `get_readme` to fetch documentation and `get_action_parameters` to understand all configuration options.
 
 ---
 
