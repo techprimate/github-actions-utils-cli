@@ -10,7 +10,7 @@ tool (
 require (
 	github.com/getsentry/sentry-go v0.36.2
 	github.com/getsentry/sentry-go/slog v0.36.2
-	github.com/lmittmann/tint v1.1.2
+	github.com/lmittmann/tint v1.2.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/modelcontextprotocol/go-sdk v1.0.0
 	github.com/spf13/cobra v1.10.1
