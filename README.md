@@ -1,5 +1,8 @@
 # GitHub Actions Utils MCP Server - Connect AI tools directly to GitHub Actions
 
+> [!IMPORTANT]
+> This repository is archived and is no longer maintained. Use [gh-kit](https://github.com/philprime/gh-kit) instead.
+
 <div align="center">
   <a href="https://github.com/techprimate/github-actions-utils-cli/releases/latest">
     <img src="https://img.shields.io/github/v/release/techprimate/github-actions-utils-cli?style=flat-square" alt="GitHub Release">
